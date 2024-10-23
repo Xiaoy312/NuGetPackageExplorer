@@ -52,7 +52,7 @@ namespace NupkgExplorer.Client.Impl
 			).ReadAsStreamAsync();
 		}
 
-		public async Task<Stream> DownloadPackage(CancellationToken ct, string packageId, string version, IProgress<(long ReceivedBytes, long? TotalBytes)> progress)
+		public async Task<Stream> DownloadPackage(CancellationToken ct, string packageId, string version, IProgress<(long ReceivedBytes, long? TotalBytes)>? progress)
 		{
 			packageId = packageId.ToLowerInvariant();
 			version = version.ToLowerInvariant();
@@ -66,7 +66,7 @@ namespace NupkgExplorer.Client.Impl
 			var total = response.Content.Headers.ContentLength;
 			long read = 0, received = 0;
 			var buffer = new byte[2 << 12];
-			progress.Report((received, total));
+			progress?.Report((received, total));
 
 			var stream = new MemoryStream((int)(total ?? 0));
 			using (var content = await response.Content.ReadAsStreamAsync())
@@ -74,12 +74,13 @@ namespace NupkgExplorer.Client.Impl
 				while ((read = await content.ReadAsync(buffer, 0, buffer.Length)) > 0)
 				{
 					await stream.WriteAsync(buffer, 0, (int)read);
-					progress.Report((received += read, total));
+					progress?.Report((received += read, total));
 					ct.ThrowIfCancellationRequested();
 				}
-				progress.Report((received += read, total));
+				progress?.Report((received += read, total));
 			}
 
+			stream.Position = 0;
 			return stream;
 		}
 	}

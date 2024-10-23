@@ -57,9 +57,18 @@ namespace PackageExplorer
             }
         }
 
-        public async Task<ISignaturePackage?> Download(SourceRepository sourceRepository, PackageIdentity packageIdentity)
+        public Task<ISignaturePackage?> Download(SourceRepository sourceRepository, PackageIdentity packageIdentity)
         {
-            var tempFilePath = await DownloadWithProgress(sourceRepository, packageIdentity);
+            return Download(sourceRepository, packageIdentity);
+        }
+
+        public async Task<ISignaturePackage?> Download(
+            SourceRepository sourceRepository,
+            PackageIdentity packageIdentity,
+            CancellationToken ct = default,
+            IProgress<(long ReceivedBytes, long? TotalBytes)>? progress = null)
+        {
+            var tempFilePath = await DownloadWithProgress(sourceRepository, packageIdentity, ct, progress);
             try
             {
                 return (tempFilePath == null) ? null : new ZipPackage(tempFilePath);
@@ -75,19 +84,22 @@ namespace PackageExplorer
                 UIServices.Show(e.Message, MessageLevel.Error);
                 return null;
             }
-
         }
 
-        private Task<string?> DownloadWithProgress(SourceRepository sourceRepository, PackageIdentity packageIdentity)
+        private Task<string?> DownloadWithProgress(
+            SourceRepository sourceRepository,
+            PackageIdentity packageIdentity,
+            CancellationToken ct = default,
+            IProgress<(long ReceivedBytes, long? TotalBytes)>? progress = null)
         {
 #if __WASM__
             // FIXME#14: we are bypassing the entire implementation, because DownloadResource could not be created on WASM (but works skia)
             return NugetEndpoint
-                .DownloadPackage(packageIdentity.Id, packageIdentity.Version.ToNormalizedString())
-                .ContinueWith(x =>
+                .DownloadPackage(ct, packageIdentity.Id, packageIdentity.Version.ToNormalizedString(), progress)
+                .ContinueWith<string?>(x =>
                 {
                     var path = $"./tmp/{Guid.NewGuid()}.nupkg";
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                     using (var file = File.OpenWrite(path))
                     {
                         x.Result.CopyTo(file);

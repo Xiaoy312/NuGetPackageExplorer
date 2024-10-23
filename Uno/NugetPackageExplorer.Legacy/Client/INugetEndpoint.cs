@@ -17,6 +17,6 @@ namespace NupkgExplorer.Client
 
 		Task<Stream> DownloadPackage(string packageId, string version);
 
-		Task<Stream> DownloadPackage(CancellationToken ct, string packageId, string version, IProgress<(long ReceivedBytes, long? TotalBytes)> progress);
+		Task<Stream> DownloadPackage(CancellationToken ct, string packageId, string version, IProgress<(long ReceivedBytes, long? TotalBytes)>? progress);
 	}
 }
